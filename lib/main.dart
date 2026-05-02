@@ -42,9 +42,10 @@ class ScannerScreen extends StatefulWidget {
   State<ScannerScreen> createState() => _ScannerScreenState();
 }
 
-class _ScannerScreenState extends State<ScannerScreen>  with WidgetsBindingObserver {
+class _ScannerScreenState extends State<ScannerScreen>
+    with WidgetsBindingObserver {
   final MobileScannerController _controller = MobileScannerController(
-    cameraResolution: const Size(800, 600),
+    cameraResolution: const Size(800, 400),
     torchEnabled: false,
   );
 
@@ -78,11 +79,11 @@ class _ScannerScreenState extends State<ScannerScreen>  with WidgetsBindingObser
       _stage == ScanStage.model || _stage == ScanStage.modelReview;
 
   int get _currentItemNumber => _items.length + 1;
-    @override
+
+  @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    // Explicitly kick the camera on every fresh State (incl. hot restart)
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       try {
         await _controller.start();
@@ -107,7 +108,6 @@ class _ScannerScreenState extends State<ScannerScreen>  with WidgetsBindingObser
   }
 
   void _onDetect(BarcodeCapture capture) {
-    // Camera keeps running always; we just ignore detections during review.
     if (_isReviewStage()) return;
 
     final ordered = capture.barcodes.toList()
@@ -144,7 +144,6 @@ class _ScannerScreenState extends State<ScannerScreen>  with WidgetsBindingObser
     }
   }
 
-  // No more _controller.stop() — camera preview stays alive continuously.
   void _capturePending(String value, ScanStage nextStage) {
     setState(() {
       _pending = value;
@@ -255,11 +254,37 @@ class _ScannerScreenState extends State<ScannerScreen>  with WidgetsBindingObser
     });
   }
 
-  void _showScannedList() {
+    void _showScannedList() {
+    final today = _fmtDateOnly(DateTime.now());
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Scanned items (${_items.length})'),
+        titlePadding: const EdgeInsets.fromLTRB(20, 18, 20, 6),
+        contentPadding: const EdgeInsets.fromLTRB(20, 0, 8, 8),
+                title: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Text(
+              'SCANNED ITEM (${_items.length})',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              '($today)',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 13,
+                color: Colors.black54,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
         content: SizedBox(
           width: double.maxFinite,
           child: _items.isEmpty
@@ -272,22 +297,58 @@ class _ScannerScreenState extends State<ScannerScreen>  with WidgetsBindingObser
                   itemCount: _items.length,
                   itemBuilder: (c, i) {
                     final it = _items[i];
-                    return ListTile(
-                      leading: CircleAvatar(child: Text('${i + 1}')),
-                      title: Text(it.model,
-                          style:
-                              const TextStyle(fontWeight: FontWeight.bold)),
-                      subtitle: Text(
-                          'Serial: ${it.serial}\n${_fmtDate(it.scannedAt)}'),
-                      isThreeLine: true,
-                      trailing: IconButton(
-                        icon: const Icon(Icons.delete_outline,
-                            color: Colors.redAccent),
-                        onPressed: () {
-                          setState(() => _items.removeAt(i));
-                          Navigator.pop(ctx);
-                          _showScannedList();
-                        },
+                    return Padding(
+                      padding:
+                          const EdgeInsets.symmetric(vertical: 4),
+                      child: Row(
+                        children: [
+                          SizedBox(
+                            width: 28,
+                            child: Text(
+                              '${i + 1}:',
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: RichText(
+                              overflow: TextOverflow.ellipsis,
+                              text: TextSpan(
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  color: Colors.black,
+                                ),
+                                children: [
+                                  TextSpan(
+                                    text: it.model,
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  const TextSpan(
+                                    text: '  /  ',
+                                    style:
+                                        TextStyle(color: Colors.black45),
+                                  ),
+                                  TextSpan(text: it.serial),
+                                ],
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            padding: EdgeInsets.zero,
+                            visualDensity: VisualDensity.compact,
+                            icon: const Icon(Icons.delete_outline,
+                                color: Colors.redAccent, size: 20),
+                            onPressed: () {
+                              setState(() => _items.removeAt(i));
+                              Navigator.pop(ctx);
+                              _showScannedList();
+                            },
+                          ),
+                        ],
                       ),
                     );
                   },
@@ -301,6 +362,11 @@ class _ScannerScreenState extends State<ScannerScreen>  with WidgetsBindingObser
         ],
       ),
     );
+  
+  }
+     String _fmtDateOnly(DateTime dt) {
+    String pad(int n) => n.toString().padLeft(2, '0');
+    return '${dt.year}-${pad(dt.month)}-${pad(dt.day)}';
   }
 
   String _fmtDate(DateTime dt) {
@@ -389,14 +455,14 @@ class _ScannerScreenState extends State<ScannerScreen>  with WidgetsBindingObser
     );
   }
 
-    @override
+  @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _controller.dispose();
     super.dispose();
   }
 
-    Widget _purpleBtn(String label, VoidCallback onPressed) {
+  Widget _purpleBtn(String label, VoidCallback onPressed) {
     return ElevatedButton(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
@@ -505,7 +571,7 @@ class _ScannerScreenState extends State<ScannerScreen>  with WidgetsBindingObser
             ),
           ),
           const SizedBox(height: 32),
-                    Row(
+          Row(
             children: [
               if (!isModelReview) ...[
                 Expanded(child: _purpleBtn('Back to Model', _backToModel)),
@@ -623,7 +689,7 @@ class _ScannerScreenState extends State<ScannerScreen>  with WidgetsBindingObser
           ],
         ),
         const SizedBox(height: 8),
-                Text(
+        Text(
           label,
           textAlign: TextAlign.center,
           maxLines: 1,
@@ -638,7 +704,7 @@ class _ScannerScreenState extends State<ScannerScreen>  with WidgetsBindingObser
     );
   }
 
-    Widget _bottomPanel() {
+  Widget _bottomPanel() {
     final hasCompleted = _items.isNotEmpty;
     final int displayItemNum;
     final String? displayModel;
@@ -739,6 +805,7 @@ class _ScannerScreenState extends State<ScannerScreen>  with WidgetsBindingObser
       appBar: AppBar(
         backgroundColor: kTeal,
         elevation: 0,
+        automaticallyImplyLeading: false,
         iconTheme: const IconThemeData(color: Colors.white),
         title: Text(
           'SCANNING ITEM $_currentItemNumber',
@@ -756,31 +823,19 @@ class _ScannerScreenState extends State<ScannerScreen>  with WidgetsBindingObser
           Expanded(
             child: Stack(
               children: [
-                // ALWAYS present — camera never unmounted, surface never rebinds
                 MobileScanner(
                   controller: _controller,
                   onDetect: _onDetect,
                 ),
-                // Yellow aim window (only during scanning)
-                  if (_isScanning())
-                  IgnorePointer(
-                    child: Align(
-                      alignment: Alignment.topCenter,
-                      child: Container(
-                        width: double.infinity,
-                        height: 90,
-                        margin: const EdgeInsets.fromLTRB(30, 10, 30, 0),
-                        decoration: BoxDecoration(
-                          border: Border.all(
-                              color: Colors.yellowAccent, width: 2),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                      ),
+                                if (_isScanning())
+                  const IgnorePointer(
+                    child: _ScanFrameOverlay(
+                      widthFactor: 0.85,
+                      height: 180,
+                      dimOpacity: 0.55,
                     ),
                   ),
-                // Zoom slider (only during scanning)
                 if (_isScanning()) _zoomSlider(),
-                // Last seen (only during scanning)
                 if (_isScanning() && _lastSeen != null)
                   Positioned(
                     left: 8,
@@ -804,7 +859,6 @@ class _ScannerScreenState extends State<ScannerScreen>  with WidgetsBindingObser
                       ),
                     ),
                   ),
-                // Review overlay — SITS ON TOP of the live camera during review
                 if (_isReviewStage())
                   Positioned.fill(
                     child: _reviewOverlay(),
@@ -818,4 +872,89 @@ class _ScannerScreenState extends State<ScannerScreen>  with WidgetsBindingObser
       ),
     );
   }
+}
+
+class _ScanFrameOverlay extends StatelessWidget {
+  final double widthFactor;
+  final double height;
+  final double dimOpacity;
+  const _ScanFrameOverlay({
+    this.widthFactor = 0.85,
+    this.height = 180,
+    this.dimOpacity = 0.55,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (ctx, constraints) {
+        final w = constraints.maxWidth;
+        final h = constraints.maxHeight;
+        final frameWidth = w * widthFactor;
+        final frameHeight = height;
+        final left = (w - frameWidth) / 2;
+        final top = (h - frameHeight) / 2;
+        final rect = Rect.fromLTWH(left, top, frameWidth, frameHeight);
+        return CustomPaint(
+          size: Size(w, h),
+          painter: _ScanFrameOverlayPainter(
+            frame: rect,
+            dimOpacity: dimOpacity,
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _ScanFrameOverlayPainter extends CustomPainter {
+  final Rect frame;
+  final double dimOpacity;
+  _ScanFrameOverlayPainter({required this.frame, required this.dimOpacity});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rrect =
+        RRect.fromRectAndRadius(frame, const Radius.circular(16));
+
+    // 1) Dim everything outside the scan frame
+    final dimPath = Path()
+      ..addRect(Rect.fromLTWH(0, 0, size.width, size.height))
+      ..addRRect(rrect)
+      ..fillType = PathFillType.evenOdd;
+    canvas.drawPath(
+      dimPath,
+      Paint()..color = Colors.black.withOpacity(dimOpacity),
+    );
+
+    // 2) Dashed white border
+    final borderPaint = Paint()
+      ..color = Colors.white
+      ..strokeWidth = 3
+      ..style = PaintingStyle.stroke;
+    final borderPath = Path()..addRRect(rrect);
+    const dashLength = 10.0;
+    const gapLength = 6.0;
+    for (final metric in borderPath.computeMetrics()) {
+      double distance = 0;
+      while (distance < metric.length) {
+        final end = (distance + dashLength) > metric.length
+            ? metric.length
+            : distance + dashLength;
+        canvas.drawPath(metric.extractPath(distance, end), borderPaint);
+        distance = end + gapLength;
+      }
+    }
+
+    // 3) Small center dot
+    canvas.drawCircle(
+      frame.center,
+      3,
+      Paint()..color = Colors.white,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _ScanFrameOverlayPainter oldDelegate) =>
+      oldDelegate.frame != frame || oldDelegate.dimOpacity != dimOpacity;
 }
