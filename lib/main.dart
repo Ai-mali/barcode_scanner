@@ -23,10 +23,12 @@ class MyApp extends StatelessWidget {
 }
 
 class ScannedItem {
+  final int itemNumber;
   final String model;
   final String serial;
   final DateTime scannedAt;
   ScannedItem({
+    required this.itemNumber,
     required this.model,
     required this.serial,
     required this.scannedAt,
@@ -50,6 +52,7 @@ class _ScannerScreenState extends State<ScannerScreen>
   );
 
   final List<ScannedItem> _items = [];
+  int _nextItemNumber = 1;
   ScanStage _stage = ScanStage.model;
   String? _currentModel;
   String? _pending;
@@ -78,7 +81,7 @@ class _ScannerScreenState extends State<ScannerScreen>
   bool _isModelSide() =>
       _stage == ScanStage.model || _stage == ScanStage.modelReview;
 
-  int get _currentItemNumber => _items.length + 1;
+    int get _currentItemNumber => _nextItemNumber;
 
   @override
   void initState() {
@@ -160,14 +163,16 @@ class _ScannerScreenState extends State<ScannerScreen>
         _stage = ScanStage.serial;
       });
       await _resetZoom();
-    } else if (_stage == ScanStage.serialReview) {
+        } else if (_stage == ScanStage.serialReview) {
       final newItem = ScannedItem(
+        itemNumber: _nextItemNumber,
         model: _currentModel!,
         serial: _pending!,
         scannedAt: DateTime.now(),
       );
       setState(() {
         _items.add(newItem);
+        _nextItemNumber += 1;
         _currentModel = null;
         _pending = null;
         _lastSeen = null;
@@ -305,7 +310,7 @@ class _ScannerScreenState extends State<ScannerScreen>
                           SizedBox(
                             width: 28,
                             child: Text(
-                              '${i + 1}:',
+                              '${it.itemNumber}:',
                               style: const TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.bold,
@@ -383,10 +388,9 @@ class _ScannerScreenState extends State<ScannerScreen>
       return;
     }
     final csv = StringBuffer('No,Model,Serial,DateTime\n');
-    for (var i = 0; i < _items.length; i++) {
-      final it = _items[i];
+    for (final it in _items) {
       csv.writeln(
-          '${i + 1},${it.model},${it.serial},${_fmtDate(it.scannedAt)}');
+          '${it.itemNumber},${it.model},${it.serial},${_fmtDate(it.scannedAt)}');
     }
     if (!mounted) return;
     await showDialog(
@@ -712,7 +716,7 @@ class _ScannerScreenState extends State<ScannerScreen>
 
     if (hasCompleted) {
       final last = _items.last;
-      displayItemNum = _items.length;
+      displayItemNum = last.itemNumber;
       displayModel = last.model;
       displaySerial = last.serial;
     } else {
