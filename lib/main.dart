@@ -225,20 +225,85 @@ class _ScannerScreenState extends State<ScannerScreen>
     } catch (_) {}
   }
 
-  Future<void> _keyInValue() async {
+    Future<void> _keyInValue() async {
     final isModel = _isModelSide();
     final label = isModel ? 'Model' : 'Serial';
     final hint = isModel ? 'e.g. RKF25AV1' : 'e.g. K003086';
     final ctrl = TextEditingController();
+
+    // Build recent-model suggestions (most recent first, no duplicates)
+    final List<String> modelSuggestions = [];
+    if (isModel) {
+      modelSuggestions.addAll(_items.map((e) => e.model).toSet());
+      modelSuggestions
+          .sort((a, b) => a.toUpperCase().compareTo(b.toUpperCase()));
+    }
+
     final value = await showDialog<String>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: Text('Key in $label'),
-        content: TextField(
-          controller: ctrl,
-          autofocus: true,
-          textCapitalization: TextCapitalization.characters,
-          decoration: InputDecoration(hintText: hint),
+        content: StatefulBuilder(
+          builder: (dctx, setInner) {
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextField(
+                  controller: ctrl,
+                  autofocus: true,
+                  textCapitalization: TextCapitalization.characters,
+                  decoration: InputDecoration(hintText: hint),
+                  onChanged: (_) => setInner(() {}),
+                  onSubmitted: (v) => Navigator.pop(dctx, v.trim()),
+                ),
+                if (isModel && modelSuggestions.isNotEmpty) ...[
+                  const SizedBox(height: 14),
+                  const Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'Recent models (tap to use):',
+                      style: TextStyle(
+                          fontSize: 12, color: Colors.black54),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                                                      ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 180),
+                    child: SingleChildScrollView(
+                      child: Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: modelSuggestions
+                            .where((s) =>
+                                ctrl.text.isEmpty ||
+                                s.toUpperCase()
+                                    .contains(ctrl.text.toUpperCase()))
+                            .map(
+                              (s) => ActionChip(
+                                label: Text(s,
+                                    style:
+                                        const TextStyle(fontSize: 13)),
+                                backgroundColor:
+                                    const Color(0xFFEDE7F6),
+                                onPressed: () {
+                                  ctrl.text = s;
+                                  ctrl.selection =
+                                      TextSelection.fromPosition(
+                                    TextPosition(offset: s.length),
+                                  );
+                                  setInner(() {});
+                                },
+                              ),
+                            )
+                            .toList(),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            );
+          },
         ),
         actions: [
           TextButton(
