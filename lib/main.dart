@@ -268,7 +268,7 @@ class _ScannerScreenState extends State<ScannerScreen>
                     ),
                   ),
                   const SizedBox(height: 6),
-                                                      ConstrainedBox(
+                  ConstrainedBox(
                     constraints: const BoxConstraints(maxHeight: 180),
                     child: SingleChildScrollView(
                       child: Wrap(
