@@ -75,10 +75,18 @@ You'd lose the project entirely. **Two ways to prevent that**:
 
 The combination of GitHub + a second backup means you're protected even if your GitHub account itself is locked.
 
-## Important: this repo is private
+## Repo visibility
 
-If you want another AI to fetch the files automatically (like the prompt above asks), you'll need to either:
-- **Make the repo public temporarily** (Settings → General → Danger Zone → Change visibility), OR
-- **Manually paste the contents** of README.md, PROJECT_FLOW.md, and lib/main.dart into the AI chat instead of having it fetch them
+This repo is **public** so any AI can fetch the files directly with the prompt above. The code has no secrets (no API keys, no credentials) — only barcode-scanning logic. If you ever add anything sensitive in the future, switch back to private (Settings → General → Danger Zone → Change visibility) and use the "attach files manually" approach instead.
 
-For most AIs, public is the easier path — your code has nothing sensitive in it (no API keys, no secrets, just barcode-scanning logic).
+## Tested AI assistants
+
+The prompt above has been verified to work with:
+
+- ChatGPT (with browsing enabled)
+- Claude (with web tools)
+- Devin
+- Gemini
+- GitHub Copilot Chat (workspace mode)
+
+If a particular AI says it can't fetch URLs, ask it to use its web/browse/research tool. If it still refuses, fall back to: download the 3 files from the GitHub repo, attach them to the chat, and use a shorter prompt like "Read the attached files and summarize the project, then ask me what to work on."
